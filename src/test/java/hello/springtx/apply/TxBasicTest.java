@@ -41,6 +41,7 @@ public class TxBasicTest {
         }
     }
 
+    @Slf4j
     static class BasicService {
         @Transactional
         public void tx() {
