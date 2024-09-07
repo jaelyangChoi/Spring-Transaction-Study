@@ -141,9 +141,9 @@ class MemberServiceTest {
      * logRepository    @Transactional:ON(REQUIRES_NEW)   Exception
      */
     @Test
-    void recoverException_successs() {
+    void recoverException_success() {
         //given
-        String username = "로그예외_recoverException_successs";
+        String username = "로그예외_recoverException_success";
 
         //when
         memberService.joinV2(username);
