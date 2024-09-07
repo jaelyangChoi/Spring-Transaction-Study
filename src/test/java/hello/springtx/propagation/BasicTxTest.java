@@ -1,6 +1,7 @@
 package hello.springtx.propagation;
 
 import lombok.extern.slf4j.Slf4j;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -11,9 +12,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.transaction.interceptor.DefaultTransactionAttribute;
 
 import javax.sql.DataSource;
+
+import static org.assertj.core.api.Assertions.*;
 
 @Slf4j
 @SpringBootTest
@@ -31,7 +35,7 @@ public class BasicTxTest {
     }
 
     @Test
-    void commit(){
+    void commit() {
         log.info("트랜잭션 시작");
         TransactionStatus status = txManager.getTransaction(new DefaultTransactionAttribute());
 
@@ -41,7 +45,7 @@ public class BasicTxTest {
     }
 
     @Test
-    void rollback(){
+    void rollback() {
         log.info("트랜잭션 시작");
         TransactionStatus status = txManager.getTransaction(new DefaultTransactionAttribute());
 
@@ -51,7 +55,7 @@ public class BasicTxTest {
     }
 
     @Test
-    void double_commit(){
+    void double_commit() {
         log.info("트랜잭션1 시작");
         TransactionStatus tx1 = txManager.getTransaction(new DefaultTransactionAttribute());
         log.info("트랜잭션1 커밋 시작");
@@ -66,7 +70,7 @@ public class BasicTxTest {
     }
 
     @Test
-    void double_commit_rollback(){
+    void double_commit_rollback() {
         log.info("트랜잭션1 시작");
         TransactionStatus tx1 = txManager.getTransaction(new DefaultTransactionAttribute());
         log.info("트랜잭션1 커밋 시작");
@@ -82,7 +86,7 @@ public class BasicTxTest {
 
     @Test
     @DisplayName("내부 트랜잭션이 외부 트랜잭션에 참여한다")
-    void inner_commit(){
+    void inner_commit() {
         log.info("외부 트랜잭션 시작");
         TransactionStatus outer = txManager.getTransaction(new DefaultTransactionAttribute());
         log.info("outer.isNewTransaction()={}", outer.isNewTransaction());
@@ -99,7 +103,7 @@ public class BasicTxTest {
 
     @Test
     @DisplayName("외부 트랜잭션이 롤백되면 내부 트랜잭션도 롤백된다")
-    void outer_rollback(){
+    void outer_rollback() {
         log.info("외부 트랜잭션 시작");
         TransactionStatus outer = txManager.getTransaction(new DefaultTransactionAttribute());
 
@@ -112,4 +116,19 @@ public class BasicTxTest {
         txManager.rollback(outer);
     }
 
+    @Test
+    @DisplayName("내부 트랜잭션이 롤백되면 기존 트랜잭션에 rollback-only 로 마킹한다")
+    void inner_rollback() {
+        log.info("외부 트랜잭션 시작");
+        TransactionStatus outer = txManager.getTransaction(new DefaultTransactionAttribute());
+
+        log.info("내부 트랜잭션 시작");
+        TransactionStatus inner = txManager.getTransaction(new DefaultTransactionAttribute());
+        log.info("내부 트랜잭션 롤백");
+        txManager.rollback(inner); //rollback-only 표시
+
+        log.info("외부 트랜잭션 커밋");
+        assertThatThrownBy(() -> txManager.commit(outer))
+                .isInstanceOf(UnexpectedRollbackException.class);
+    }
 }
